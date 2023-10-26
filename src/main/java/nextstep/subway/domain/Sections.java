@@ -1,8 +1,8 @@
 package nextstep.subway.domain;
 
 import nextstep.subway.common.exception.line.ContainsAllStationException;
-import nextstep.subway.common.exception.station.NotExistStationException;
 import nextstep.subway.common.exception.line.OnlyOneSectionException;
+import nextstep.subway.common.exception.station.NotExistStationException;
 
 import javax.persistence.*;
 import java.util.*;
@@ -59,12 +59,22 @@ public class Sections {
     }
 
     public void addSection(Section section) {
-        if (hasAllStations(section)) throw new ContainsAllStationException();
-
-        if (addIfEmpty(section)) return;
-        if (addIfStartStation(section)) return;
-        if (addIfEndStation(section)) return;
-        addIfMiddleStation(section);
+        if (hasAllStations(section)) {
+            throw new ContainsAllStationException();
+        }
+        if (this.sections.isEmpty()) {
+            addFirstSection(section);
+            return;
+        }
+        if (this.startStation.equals(section.getDownStation())) {
+            addStartSection(section);
+            return;
+        }
+        if (this.endStation.equals(section.getUpStation())) {
+            addEndSection(section);
+            return;
+        }
+        addMiddleSection(section);
     }
 
 
@@ -72,50 +82,41 @@ public class Sections {
         if (sections.size() <= 1) {
             throw new OnlyOneSectionException();
         }
-
         if (!this.getStations().contains(station)) {
             throw new NotExistStationException();
         }
-
-        if (removeIfStartStation(station)) return;
-        if (removeIfEndStation(station)) return;
-
-        removeIfMiddleStation(station);
+        if (startStation.equals(station)) {
+            removeStartStation(station);
+            return;
+        }
+        if (endStation.equals(station)) {
+            removeEndStation(station);
+            return;
+        }
+        removeMiddleStation(station);
     }
 
     private boolean hasAllStations(Section section) {
         return new HashSet<>(this.getStations()).containsAll(List.of(section.getUpStation(), section.getDownStation()));
     }
 
-    private boolean addIfEmpty(Section section) {
-        if (this.sections.isEmpty()) {
-            this.startStation = section.getUpStation();
-            this.endStation = section.getDownStation();
-            sections.add(section);
-            return true;
-        }
-        return false;
+    private void addFirstSection(Section section) {
+        this.startStation = section.getUpStation();
+        this.endStation = section.getDownStation();
+        sections.add(section);
     }
 
-    private boolean addIfStartStation(Section section) {
-        if (this.startStation.equals(section.getDownStation())) {
-            this.startStation = section.getUpStation();
-            sections.add(section);
-            return true;
-        }
-        return false;
+    private void addStartSection(Section section) {
+        this.startStation = section.getUpStation();
+        sections.add(section);
     }
 
-    private boolean addIfEndStation(Section section) {
-        if (this.endStation.equals(section.getUpStation())) {
-            this.endStation = section.getDownStation();
-            sections.add(section);
-            return true;
-        }
-        return false;
+    private void addEndSection(Section section) {
+        this.endStation = section.getDownStation();
+        sections.add(section);
     }
 
-    private void addIfMiddleStation(Section section) {
+    private void addMiddleSection(Section section) {
         Section oldSection = getSectionByDownStation(section.getDownStation())
                 .or(() -> getSectionByUpStation(section.getUpStation()))
                 .orElseThrow(NotExistStationException::new);
@@ -123,29 +124,21 @@ public class Sections {
         sections.add(section);
     }
 
-    private boolean removeIfStartStation(Station station) {
-        if (startStation.equals(station)) {
-            this.getSectionByUpStation(station).ifPresent(section -> {
-                startStation = section.getDownStation();
-                sections.remove(section);
-            });
-            return true;
-        }
-        return false;
+    private void removeStartStation(Station station) {
+        this.getSectionByUpStation(station).ifPresent(section -> {
+            startStation = section.getDownStation();
+            sections.remove(section);
+        });
     }
 
-    private boolean removeIfEndStation(Station station) {
-        if (endStation.equals(station)) {
-            this.getSectionByDownStation(station).ifPresent(section -> {
-                endStation = section.getUpStation();
-                sections.remove(section);
-            });
-            return true;
-        }
-        return false;
+    private void removeEndStation(Station station) {
+        this.getSectionByDownStation(station).ifPresent(section -> {
+            endStation = section.getUpStation();
+            sections.remove(section);
+        });
     }
 
-    private void removeIfMiddleStation(Station station) {
+    private void removeMiddleStation(Station station) {
         Section upSection = getSectionByDownStation(station).get();
         Section downSection = getSectionByUpStation(station).get();
         upSection.unionDownSection(downSection);
