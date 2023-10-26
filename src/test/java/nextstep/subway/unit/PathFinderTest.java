@@ -59,11 +59,11 @@ public class PathFinderTest {
         PathFinder pathFinder = new PathFinder(전체_라인);
 
         // when 출발역과 도착역을 넣고 경로를 계산하면
-        pathFinder.calculatePath(교대역, 양재역);
+        pathFinder.findPath(교대역, 양재역);
 
         // then 최단경로의 역 목록이 반환된다.
-        assertThat(pathFinder.getPathStations()).containsExactly(교대역, 남부터미널역, 양재역);
+        assertThat(pathFinder.findPath(교대역, 양재역).getStations()).containsExactly(교대역, 남부터미널역, 양재역);
         // then 최단경로의 거리가 반환된다.
-        assertThat(pathFinder.getDistance()).isEqualTo(6);
+        assertThat(pathFinder.findPath(교대역, 양재역).extractDistance()).isEqualTo(6);
     }
 }

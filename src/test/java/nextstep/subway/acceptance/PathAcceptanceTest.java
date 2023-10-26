@@ -96,7 +96,7 @@ public class PathAcceptanceTest extends AcceptanceTest {
         Long 복정역_ID = 역_생성_ID_추출(지하철역_생성_요청("복정역"));
         Long 수서역_ID = 역_생성_ID_추출(지하철역_생성_요청("수서역"));
         Long 분당선_ID = 노선_생성_ID_추출(지하철_노선_생성_요청(분당선_이름, 분당선_색));
-        지하철_노선에_지하철_구간_생성_요청(복정역_ID, 수서역_ID, 분당선_ID, 3);
+        지하철_노선에_지하철_구간_생성_요청(분당선_ID, 복정역_ID, 수서역_ID, 3);
         // when
         ExtractableResponse<Response> response = 지하철_경로_탐색_요청(교대역_ID, 수서역_ID);
         // then

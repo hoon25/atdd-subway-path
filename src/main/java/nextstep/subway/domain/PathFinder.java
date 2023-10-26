@@ -2,81 +2,50 @@ package nextstep.subway.domain;
 
 import nextstep.subway.common.exception.pathFinder.DisconnectedPathException;
 import nextstep.subway.common.exception.pathFinder.SameStationException;
+import org.jgrapht.GraphPath;
 import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
-import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.WeightedMultigraph;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class PathFinder {
-    private Lines lines;
-    private List<Section> sections;
-
-    private Station source;
-    private Station target;
-
-    private List<Station> pathStations;
-    private Integer distance;
+    private final List<Line> lines;
 
     public PathFinder(List<Line> lines) {
-        this.lines = Lines.from(lines);
-        this.sections = this.lines.getSections();
+        this.lines = lines;
     }
 
-    public List<Station> getPathStations() {
-        return this.pathStations;
-    }
-
-    public Integer getDistance() {
-        return this.distance;
-    }
-
-    public void calculatePath(Station source, Station target) {
+    public Path findPath(Station source, Station target) {
         if (source.equals(target)) {
             throw new SameStationException();
         }
-        this.source = source;
-        this.target = target;
-        this.calculatePath();
-    }
-
-    private void calculatePath() {
-        calculateStations();
-        calculateDistance();
-    }
-
-    private void calculateStations() {
-        WeightedMultigraph<Station, DefaultWeightedEdge> graph = new WeightedMultigraph<>(
-                DefaultWeightedEdge.class
+        WeightedMultigraph<Station, SectionEdge> graph = new WeightedMultigraph<>(
+                SectionEdge.class
         );
-        sections.forEach(section -> {
-            graph.addVertex(section.getUpStation());
-            graph.addVertex(section.getDownStation());
-            graph.setEdgeWeight(
-                    graph.addEdge(section.getUpStation(), section.getDownStation()),
-                    section.getDistance()
-            );
+        lines.stream()
+                .flatMap(it -> it.getStations().stream())
+                .distinct()
+                .collect(Collectors.toList())
+                .forEach(graph::addVertex);
 
-        });
-        DijkstraShortestPath dijkstraShortestPath = new DijkstraShortestPath(graph);
-        try {
-            this.pathStations = dijkstraShortestPath.getPath(this.source, this.target).getVertexList();
-        } catch (IllegalArgumentException e) {
+        lines.stream()
+                .flatMap(it -> it.getSections().getSections().stream())
+                .forEach(it -> {
+                    SectionEdge sectionEdge = SectionEdge.of(it);
+                    graph.addEdge(it.getUpStation(), it.getDownStation(), sectionEdge);
+                    graph.setEdgeWeight(sectionEdge, it.getDistance());
+                });
+        DijkstraShortestPath<Station, SectionEdge> dijkstraShortestPath = new DijkstraShortestPath(graph);
+        GraphPath<Station, SectionEdge> result = dijkstraShortestPath.getPath(source, target);
+
+        if (result == null) {
             throw new DisconnectedPathException();
         }
-
-    }
-
-    private void calculateDistance() {
-        int distance = 0;
-        for (int i = 0; i < pathStations.size() - 1; i++) {
-            Station station = pathStations.get(i);
-            Optional<Section> sect = sections.stream().filter(section -> section.getUpStation().equals(station)).findFirst();
-            if (sect.isPresent()) {
-                distance += sect.get().getDistance();
-            }
-        }
-        this.distance = distance;
+        List<Section> pathSections = new ArrayList<>(result.getEdgeList().stream()
+                .map(it -> it.getSection())
+                .collect(Collectors.toList()));
+        return new Path(new Sections(pathSections, source, target));
     }
 }

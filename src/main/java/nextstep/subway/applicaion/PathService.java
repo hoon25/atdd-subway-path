@@ -2,6 +2,7 @@ package nextstep.subway.applicaion;
 
 import nextstep.subway.applicaion.dto.PathRequest;
 import nextstep.subway.domain.LineRepository;
+import nextstep.subway.domain.Path;
 import nextstep.subway.domain.PathFinder;
 import nextstep.subway.domain.Station;
 import nextstep.subway.applicaion.dto.PathResponse;
@@ -23,7 +24,7 @@ public class PathService {
         PathFinder pathFinder = new PathFinder(lineRepository.findAll());
         Station source = stationService.findById(request.getSource());
         Station target = stationService.findById(request.getTarget());
-        pathFinder.calculatePath(source, target);
-        return PathResponse.from(pathFinder);
+        Path path = pathFinder.findPath(source, target);
+        return PathResponse.from(path);
     }
 }

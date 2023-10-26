@@ -27,6 +27,12 @@ public class Sections {
         sections = new ArrayList<>();
     }
 
+    public Sections(List<Section> sections, Station source, Station target) {
+        this.sections = sections;
+        this.startStation = source;
+        this.endStation = target;
+    }
+
     public List<Section> getSections() {
         return sections;
     }
@@ -155,5 +161,9 @@ public class Sections {
         return sections.stream()
                 .filter(section -> section.getUpStation().equals(station))
                 .findFirst();
+    }
+
+    public Integer totalDistance() {
+        return sections.stream().mapToInt(Section::getDistance).sum();
     }
 }
